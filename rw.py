@@ -50,21 +50,36 @@ class mainWindow(wx.Frame):
         btn2 = wx.Button(panel, label='Wipe')
         sizer.Add(btn2, pos=(1, 4), flag=wx.ALL, border=5)
 
+        self.rbox = wx.RadioBox(panel, label='Age for deletion', style=wx.RA_SPECIFY_ROWS,
+                           choices=('Any age','Older than X days'), majorDimension=1)
+        sizer.Add(self.rbox, pos=(2, 0), span=(0, 3), flag=wx.ALL, border=5)
+
+        self.age = wx.SpinCtrl(panel, value="0", max=999999, name="Min age to delete", style=wx.ALIGN_RIGHT)
+        sizer.Add(self.age, pos=(2, 3), flag=wx.ALIGN_CENTER_VERTICAL|wx.ALL )
+
         self.found = wx.TextCtrl(panel)
-        sizer.Add(self.found, pos=(2, 0), span=(0, 5),
+        sizer.Add(self.found, pos=(3, 0), span=(0, 5),
                   flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TE_READONLY, border=5)
 
         self.tc2 = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY)
-        sizer.Add(self.tc2, pos=(3, 0), span=(0, 5),
+        sizer.Add(self.tc2, pos=(4, 0), span=(0, 5),
                   flag=wx.EXPAND|wx.LEFT|wx.RIGHT, border=5)
 
-        sizer.AddGrowableRow(3)
+        sizer.AddGrowableRow(4)
 
         panel.SetSizer(sizer)
 
         self.Bind(wx.EVT_BUTTON, self.Login, id=btn1.GetId())
         self.Bind(wx.EVT_BUTTON, self.Process, id=btn2.GetId())
+        self.Bind(wx.EVT_SPINCTRL, self.UpdateAge)
         self.loggedin = False
+
+    def UpdateAge(self, e):
+        if self.age.GetValue() > 0:
+            self.rbox.SetSelection(1)
+        else:
+            self.rbox.SetSelection(0)
+
 
     def OnQuit(self, e):
         self.Close()
@@ -139,9 +154,16 @@ class mainWindow(wx.Frame):
     def Login(self, e):
         sb = self.GetStatusBar()
         sb.SetStatusText('Logging in...')
-        clientid = os.environ["REDDIT_CLIENT_ID"]
-        clientsecret = os.environ["REDDIT_CLIENT_SECRET"]
-        user_agent = 'redditwipe'
+        try:
+            clientid = os.environ["REDDIT_CLIENT_ID"]
+            clientsecret = os.environ["REDDIT_CLIENT_SECRET"]
+        except KeyError:
+            print('Environment variables REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set.')
+            sys.exit(1)
+        try:
+            user_agent = os.environ["REDDIT_USER_AGENT"]
+        except KeyError:
+            user_agent = 'redditwipe'
         self.limitation = None
         self.reddit = praw.Reddit(client_id=clientid, client_secret=clientsecret,
                                   user_agent=user_agent, username=self.uname.GetValue(),
