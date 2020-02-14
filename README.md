@@ -35,7 +35,7 @@ If you're only going to use one username/password set, you can also set two more
 
 and they'll be available to the program. If you want to use the program with several usernames (** they must all be added as developers in the App section on Reddit **) you can leave those variables blank and enter the username/pw pairs when you run the program. 
 
-These values are stored as environment variables to make it difficult to accidentally export/upload your private information to Github or similar. 
+These values are stored as environment variables, not in the code, to make it difficult to accidentally export/upload your private information to Github or similar. 
 
 To run the program, type
 
