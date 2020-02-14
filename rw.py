@@ -13,12 +13,6 @@ class mainWindow(wx.Frame):
         self.InitUI()
 
     def InitUI(self):
-#        menubar = wx.MenuBar()
-#        fileMenu = wx.Menu()
-#        fileItem = fileMenu.Append(wx.ID_EXIT, 'E&xit', 'Exit application')
-#        menubar.Append(fileMenu, '&File')
-#        self.SetMenuBar(menubar)
-#        self.Bind(wx.EVT_MENU, self.OnQuit, fileItem)
         self.CreateStatusBar()
 
         panel = wx.Panel(self)
@@ -48,6 +42,10 @@ class mainWindow(wx.Frame):
 
         self.submissions = wx.CheckBox(panel, label="Wipe submissions")
         sizer.Add(self.submissions, pos=(1, 1), flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+
+        self.verbose = wx.CheckBox(panel, label="Verbose output")
+        self.verbose.SetValue(True)
+        sizer.Add(self.verbose, pos=(1, 3), flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
 
         btn2 = wx.Button(panel, label='Wipe')
         sizer.Add(btn2, pos=(1, 4), flag=wx.ALL, border=5)
@@ -95,21 +93,33 @@ class mainWindow(wx.Frame):
 
     def start_delete_comments(self, e):
         comment_count = self.get_comment_total(self)
+        textbox = self.tc2
         while comment_count > 0:
             for comment in self.reddit.redditor(self.uname.GetValue()).comments.new(limit=self.limitation):
                 comment_to_delete = self.reddit.comment(comment)
-                comment_to_delete.edit(self.Random_words())
-                comment_to_delete.edit(self.Random_words())
+                if self.verbose.GetValue():
+                    textbox.AppendText('Working on comment {}: {}\n'.format(comment_to_delete.id, comment_to_delete.body[0:15]))
+                    for i in range(2):
+                        comment_to_delete.edit(self.Random_words())
+                        if self.verbose.GetValue():
+                            textbox.AppendText('Working on comment {}: Changed text to {}\n'.format(comment_to_delete.id, comment_to_delete.body))
+                textbox.AppendText('Deleted comment {}\n'.format(comment_to_delete.id))
                 comment_to_delete.delete()
                 comment_count -= 1
 
     def start_delete_submissions(self, e):
         submission_count = self.get_submission_total(self)
+        textbox = self.tc2
         while submission_count > 0:
             for submission in self.reddit.redditor(self.uname.GetValue()).submissions.new(limit=self.limitation):
                 submission_to_delete = self.reddit.submission(submission)
-                submission_to_delete.edit(self.Random_words())
-                submission_to_delete.edit(self.Random_words())
+                if self.verbose.GetValue():
+                    textbox.AppendText('Working on submission {}: {}\n'.format(submission_to_delete.id, submission_to_delete.title))
+                    for i in range(2):
+                        submission_to_delete.edit(self.Random_words())
+                        if self.verbose.GetValue():
+                            textbox.AppendText('Working on submission {}: Changed text to {}\n'.format(submission_to_delete.id, submission_to_delete.selftext))
+                textbox.AppendText('Deleted submission {}\n'.format(submission_to_delete.id))
                 submission_to_delete.delete()
                 submission_count -= 1
 
