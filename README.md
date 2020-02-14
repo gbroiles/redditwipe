@@ -1,6 +1,8 @@
 # redditwipe
 Python GUI to overwrite, then delete Reddit comments/submissions
 
+Content is edited to garbage text twice, *then* deleted, so that hopefully "undeleted" information will reflect the garbage text, not the actual text. 
+
 Intended for Python 3. Developed (so far) on Windows, but should run with minimal or no changes on OS X and Linux (thanks, wxPython!)
 
 Adapted from 
@@ -33,7 +35,9 @@ If you're only going to use one username/password set, you can also set two more
 
 and they'll be available to the program. If you want to use the program with several usernames (** they must all be added as developers in the App section on Reddit **) you can leave those variables blank and enter the username/pw pairs when you run the program. 
 
-to run the program, type
+These values are stored as environment variables to make it difficult to accidentally export/upload your private information to Github or similar. 
+
+To run the program, type
 
     python redditwipe.py
     
