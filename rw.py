@@ -111,9 +111,9 @@ class mainWindow(wx.Frame):
         expire_seconds = age * 60
         if self.verbose.GetValue():
             if age > 0:
-                textbox.AppendText('Looking for comments older than {:0,} minutes\n'.format(age))
+                textbox.AppendText('Looking for comments older than {:0,} minutes from {}\n'.format(age, self.uname.GetValue()))
             else:
-                textbox.AppendText('Looking for all comments\n')
+                textbox.AppendText('Looking for all comments from {}\n'.format(self.uname.GetValue()))
         for reply in self.reddit.redditor(self.uname.GetValue()).comments.new(limit=self.limitation):
             comment_age = now-reply.created_utc
             if self.verbose.GetValue():
@@ -131,9 +131,9 @@ class mainWindow(wx.Frame):
         expire_seconds = age * 60
         if self.verbose.GetValue():
             if age > 0:
-                textbox.AppendText('Looking for submissions older than {:0,} minutes\n'.format(age))
+                textbox.AppendText('Looking for submissions older than {:0,} minutes from {}\n'.format(age, self.uname.GetValue()))
             else:
-                textbox.AppendText('Looking for all submissions\n')
+                textbox.AppendText('Looking for all submissions from {}\n'.format(self.uname.GetValue()))
         for submission in self.reddit.redditor(self.uname.GetValue()).submissions.new(limit=self.limitation):
             submission_age = now-submission.created_utc
             if self.verbose.GetValue():
