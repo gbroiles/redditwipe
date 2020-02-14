@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 #pylint: disable=missing-module-docstring,missing-function-docstring,invalid-name,no-member,unused-argument,unused-variable,missing-class-docstring
 import os
-import requests
+import random
 import wx
 import praw
 
@@ -87,23 +87,34 @@ class mainWindow(wx.Frame):
     def start_delete_comments():
         comment_count = get_comment_total() # 490
         while comment_count > 0:
-            for comment in reddit.redditor(username).comments.new(limit=self.limitation):
-                comment_to_delete = reddit.comment(comment)
+            for comment in self.reddit.redditor(self.uname.GetValue()).comments.new(limit=self.limitation):
+                comment_to_delete = self.reddit.comment(comment)
+                comment_to_delete.edit(self.random_words())
+                comment_to_delete.edit(self.random_words())
                 comment_to_delete.delete()
                 comment_count -= 1
 
     def start_delete_submissions():
         submission_count = get_submission_total()
         while submission_count > 0:
-            for submission in reddit.redditor(username).submissions.new(limit=self.limitation):
-                submission_to_delete = reddit.submission(submission)
+            for submission in self.reddit.redditor(self.uname.GetValue()).submissions.new(limit=self.limitation):
+                submission_to_delete = self.reddit.submission(submission)
+                sumbission_to_delete.edit(self.random_words())
+                sumbission_to_delete.edit(self.random_words())
                 submission_to_delete.delete()
                 submission_count -= 1
 
     def Update_counts(self):
+        sb = self.GetStatusBar()
+        sb.SetStatusText('Getting submission/comment count ...')
         comments = self.get_comment_total(self.reddit)
         submissions = self.get_submission_total(self.reddit)
-        self.found.SetValue('Found {} submissions, {} comments'.format(submissions, comments))
+        result=('Found {} submissions, {} comments'.format(submissions, comments))
+        self.found.SetValue(result)
+        sb.SetStatusText(result)
+
+    def random_words():
+        return ' '.join(random.choices(phonetic, k=5))
     
     def Login(self, e):
         sb = self.GetStatusBar()
@@ -116,6 +127,12 @@ class mainWindow(wx.Frame):
         sb.SetStatusText('Logged in.')
         self.Update_counts()
         self.loggedin = True
+
+
+phonetic = ['alfa', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel', 
+            'india', 'juliett', 'kilo', 'lima', 'mike', 'november', 'oscar',    
+            'papa', 'quebec', 'romeo', 'sierra', 'tango', 'uniform', 'victor',
+            'whiskey', 'x-ray', 'yankee', 'zulu']
 
 def main():
     app = wx.App()
