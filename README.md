@@ -1,7 +1,7 @@
 # redditwipe
 Python GUI to overwrite, then delete Reddit comments/submissions
 
-Content is edited to garbage text twice, *then* deleted, so that hopefully "undeleted" information will reflect the garbage text, not the actual text. 
+Text submissions and comments are edited to garbage text twice, *then* deleted, so that hopefully "undeleted" information will reflect the garbage text, not the actual text. Link submissions are just deleted, since I haven't figured out a way to change them after they're posted. 
 
 Intended for Python 3. Developed (so far) on Windows, but should run with minimal or no changes on OS X and Linux (thanks, wxPython!)
 
