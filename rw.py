@@ -3,6 +3,7 @@
 import datetime
 import os
 import random
+import sys
 import wx
 import praw
 
@@ -153,7 +154,7 @@ class mainWindow(wx.Frame):
         while comment_count > 0:
             for comment in self.reddit.redditor(self.uname.GetValue()).comments.new(limit=self.limitation):
                 comment_to_delete = self.reddit.comment(comment)
-                comment_age = now-reply.created_utc
+                comment_age = now - comment_to_delete.created_utc
                 if age == 0 or comment_age > expire_seconds:
                     if self.verbose.GetValue():
                         textbox.AppendText('Working on comment {}: {}\n'.format(comment_to_delete.id, comment_to_delete.body[0:15]))
@@ -174,7 +175,7 @@ class mainWindow(wx.Frame):
         while submission_count > 0:
             for submission in self.reddit.redditor(self.uname.GetValue()).submissions.new(limit=self.limitation):
                 submission_to_delete = self.reddit.submission(submission)
-                submission_age = submission_to_delete.created_utc
+                submission_age = now - submission_to_delete.created_utc
                 if age == 0 or submission_age > expire_seconds:
                     if self.verbose.GetValue():
                         textbox.AppendText('Working on submission {}: {}'.format(submission_to_delete.id, submission_to_delete.title))
@@ -199,10 +200,6 @@ class mainWindow(wx.Frame):
         self.found.SetValue(result)
         sb.SetStatusText(result)
 
-    @staticmethod
-    def Random_words():
-        return ' '.join(random.choices(phonetic, k=5))
-
     def Login(self, e):
         sb = self.GetStatusBar()
         sb.SetStatusText('Logging in...')
@@ -224,11 +221,13 @@ class mainWindow(wx.Frame):
         self.Update_counts()
         self.loggedin = True
 
-
 phonetic = ['alfa', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel',
             'india', 'juliett', 'kilo', 'lima', 'mike', 'november', 'oscar',
             'papa', 'quebec', 'romeo', 'sierra', 'tango', 'uniform', 'victor',
             'whiskey', 'x-ray', 'yankee', 'zulu']
+
+def Random_words():
+    return ' '.join(random.choices(phonetic, k=5))
 
 def main():
     app = wx.App()

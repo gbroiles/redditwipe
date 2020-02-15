@@ -1,2 +1,2 @@
-wxPython>4.0.7.post2
 praw>6.5.1
+wxPython>4.0.7.post2
