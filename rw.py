@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-#pylint: disable=missing-module-docstring,missing-function-docstring,invalid-name,no-member,unused-argument,unused-variable,missing-class-docstring
+#pylint: disable=missing-module-docstring,missing-function-docstring,invalid-name,no-member,unused-argument,unused-variable,missing-class-docstring,line-too-long
 import datetime
 import os
 import random
@@ -53,16 +53,15 @@ class mainWindow(wx.Frame):
         sizer.Add(btn2, pos=(1, 4), flag=wx.ALL, border=5)
 
         self.rbox = wx.RadioBox(panel, label='Age for deletion', style=wx.RA_SPECIFY_ROWS,
-                           choices=('Any age','Older than X minutes'), majorDimension=1)
+                                choices=('Any age', 'Older than X minutes'), majorDimension=1)
         sizer.Add(self.rbox, pos=(2, 0), span=(0, 3), flag=wx.ALL, border=5)
 
         self.age = wx.SpinCtrl(panel, value="0", max=99999999, name="Min age to delete", style=wx.ALIGN_RIGHT)
-        sizer.Add(self.age, pos=(2, 3), flag=wx.ALIGN_CENTER_VERTICAL|wx.ALL )
+        sizer.Add(self.age, pos=(2, 3), flag=wx.ALIGN_CENTER_VERTICAL|wx.ALL)
 
-        legendtext = ''.join('1 day = {:,} minutes, 1 month = {:,} minutes, 1 year = {:,} minutes'.format(60*24,60*24*30,60*24*365))
-        legend = wx.StaticText(panel,label=legendtext)
+        legendtext = ''.join('1 day = {:,} minutes, 1 month = {:,} minutes, 1 year = {:,} minutes'.format(60*24, 60*24*30, 60*24*365))
+        legend = wx.StaticText(panel, label=legendtext)
         sizer.Add(legend, pos=(3, 0), span=(0, 5), flag=wx.ALL|wx.ALIGN_CENTER|wx.ALIGN_CENTER_VERTICAL, border=5)
-
 
         self.found = wx.TextCtrl(panel)
         sizer.Add(self.found, pos=(4, 0), span=(0, 5),
@@ -87,7 +86,6 @@ class mainWindow(wx.Frame):
         else:
             self.rbox.SetSelection(0)
 
-
     def OnQuit(self, e):
         self.Close()
 
@@ -105,7 +103,7 @@ class mainWindow(wx.Frame):
         if self.rbox.GetSelection() == 1:
             age = self.age.GetValue()
         else:
-            age=0
+            age = 0
         comment_count = 0
         textbox = self.tc2
         now = datetime.datetime.now().timestamp()
@@ -140,7 +138,7 @@ class mainWindow(wx.Frame):
             if self.verbose.GetValue():
                 subreddit = submission.subreddit
                 textbox.AppendText('Found {} in /r/{} it is {:,} minutes old.\n'.format(submission.id, subreddit,
-                                                                                     int(submission_age/60)))
+                                                                                        int(submission_age/60)))
             if age == 0 or submission_age > expire_seconds:
                 submission_count += 1
         return submission_count
