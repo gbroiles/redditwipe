@@ -23,39 +23,39 @@ def main():
     except KeyError:
         user_agent = 'redditwipe'
     limitation = None
-#    print("logging in... ",end='')
     reddit = praw.Reddit(client_id=clientid, client_secret=clientsecret,
                               user_agent=user_agent, username=username,
                               password=password)
-#    print("done.")
-    submissions=[]
 
-    for submission in reddit.redditor(username).submissions.new(limit=limitation):
-        submissions.append(submission)
+    x = random.randint(1,4)
 
-    choice = random.randint(0,len(submissions)-1)
-    try:
-        submissions[choice].reply(Random_words())
-    except:
-        pass
+    if x == 1:
+        submissions=[]
+        for submission in reddit.redditor(username).submissions.new(limit=limitation):
+            submissions.append(submission)
+        choice = random.randint(0,len(submissions)-1)
+        try:
+            submissions[choice].reply(Random_words())
+        except:
+            pass
 
-    comments=[]
+    elif x == 2:
+        comments=[]
+        for comment in reddit.redditor(username).comments.new(limit=limitation):
+            comments.append(comment)
+        choice = random.randint(0,len(comments)-1)
+        try:
+            comments[choice].reply(Random_words())
+        except:
+            pass
 
-    for comment in reddit.redditor(username).comments.new(limit=limitation):
-        comments.append(comment)
-
-    choice = random.randint(0,len(comments)-1)
-    try:
-        comments[choice].reply(Random_words())
-    except:
-        pass
-
-    title = Random_words()
-    selftext = Random_words()
-    try:
-        reddit.subreddit('reddit_api_test').submit(title, url=url)
-    except:
-        pass
+    else:
+        title = Random_words()
+        selftext = Random_words()
+        try:
+            reddit.subreddit('reddit_api_test').submit(title, url=url)
+        except:
+            pass
 
 
 
@@ -65,7 +65,7 @@ phonetic = ['alfa', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hot
             'whiskey', 'x-ray', 'yankee', 'zulu']
 
 def Random_words():
-    return ' '.join(random.choices(phonetic, k=5))
+    return ' '.join(random.choices(phonetic, k=random.randint(3, 8)))
 
 if __name__ == '__main__':
     main()
