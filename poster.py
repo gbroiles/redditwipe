@@ -50,6 +50,13 @@ def main():
     except:
         pass
 
+    title = Random_words()
+    selftext = Random_words()
+    try:
+        reddit.subreddit('reddit_api_test').submit(title, url=url)
+    except:
+        pass
+
 
 
 phonetic = ['alfa', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel',
