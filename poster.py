@@ -16,18 +16,18 @@ def main():
         username = os.environ["REDDIT_USERNAME"]
         password = os.environ["REDDIT_PASSWORD"]
     except KeyError:
-        print('Environment variables REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set.')
+#        print('Environment variables REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set.')
         sys.exit(1)
     try:
         user_agent = os.environ["REDDIT_USER_AGENT"]
     except KeyError:
         user_agent = 'redditwipe'
     limitation = None
-    print("logging in... ",end='')
+#    print("logging in... ",end='')
     reddit = praw.Reddit(client_id=clientid, client_secret=clientsecret,
                               user_agent=user_agent, username=username,
                               password=password)
-    print("done.")
+#    print("done.")
     submissions=[]
 
     for submission in reddit.redditor(username).submissions.new(limit=limitation):
