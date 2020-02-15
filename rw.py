@@ -36,8 +36,8 @@ class mainWindow(wx.Frame):
         self.pword.SetValue(password)
         sizer.Add(self.pword, pos=(0, 3), flag=wx.ALL|wx.ALIGN_LEFT, border=5)
 
-        btn1 = wx.Button(panel, label='Get counts')
-        sizer.Add(btn1, pos=(0, 4), flag=wx.ALL, border=5)
+        btn1 = wx.Button(panel, label='Update')
+        sizer.Add(btn1, pos=(1, 4), flag=wx.ALL, border=5)
 
         self.comments = wx.CheckBox(panel, label="Wipe comments")
         sizer.Add(self.comments, pos=(1, 2), flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -50,7 +50,7 @@ class mainWindow(wx.Frame):
         sizer.Add(self.verbose, pos=(1, 3), flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
 
         btn2 = wx.Button(panel, label='Wipe')
-        sizer.Add(btn2, pos=(1, 4), flag=wx.ALL, border=5)
+        sizer.Add(btn2, pos=(2, 4), flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
 
         self.rbox = wx.RadioBox(panel, label='Age for deletion', style=wx.RA_SPECIFY_ROWS,
                                 choices=('Any age', 'Older than X minutes'), majorDimension=1)
