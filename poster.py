@@ -37,7 +37,7 @@ def main():
         try:
             submissions[choice].reply(Random_words())
         except Exception as e:
-            print(stderr,"got an error replying to an existing submission. [{}]".format(e.args[0]))
+            print("got an error replying to an existing submission. [{}]".format(e.args[0]), file=sys.stderr)
 
     elif x == 2:
         comments=[]
@@ -47,7 +47,7 @@ def main():
         try:
             comments[choice].reply(Random_words())
         except Exception as e:
-            print(stderr,"got an error replying to an existing comment. [{}]".format(e.args[0]))
+            print("got an error replying to an existing comment. [{}]".format(e.args[0]), file=sys.stderr)
 
     else:
         title = Random_words()
@@ -55,12 +55,12 @@ def main():
         try:
             reddit.subreddit('reddit_api_test').submit(title, url=url)
         except:
-            print(stderr,"got an error making a new submission. [{}]".format(e.args[0]))
+            print("got an error making a new submission. [{}]".format(e.args[0]), file=sys.stderr)
 
 
 
 phonetic = ['alfa', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel',
-            'india', 'juliett', 'kilo', 'lima', 'mike', 'november', 'oscar',
+            'india', 'juliet', 'kilo', 'lima', 'mike', 'november', 'oscar',
             'papa', 'quebec', 'romeo', 'sierra', 'tango', 'uniform', 'victor',
             'whiskey', 'x-ray', 'yankee', 'zulu']
 
