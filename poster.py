@@ -36,8 +36,8 @@ def main():
         choice = random.randint(0,len(submissions)-1)
         try:
             submissions[choice].reply(Random_words())
-        except:
-            pass
+        except Exception as e:
+            print(stderr,"got an error replying to an existing submission. [{}]".format(e.args[0]))
 
     elif x == 2:
         comments=[]
@@ -46,8 +46,8 @@ def main():
         choice = random.randint(0,len(comments)-1)
         try:
             comments[choice].reply(Random_words())
-        except:
-            pass
+        except Exception as e:
+            print(stderr,"got an error replying to an existing comment. [{}]".format(e.args[0]))
 
     else:
         title = Random_words()
@@ -55,7 +55,7 @@ def main():
         try:
             reddit.subreddit('reddit_api_test').submit(title, url=url)
         except:
-            pass
+            print(stderr,"got an error making a new submission. [{}]".format(e.args[0]))
 
 
 
