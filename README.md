@@ -46,3 +46,5 @@ or
     python3 redditwipe.py
     
 or on Windows, name the file "redditwipe.pyw" and it will launch as a GUI and you don't need to run the Python interpreter separately. 
+
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
