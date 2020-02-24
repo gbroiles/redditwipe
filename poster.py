@@ -64,7 +64,7 @@ def main():
         title = Random_words()
         selftext = Random_words()
         try:
-            reddit.subreddit("reddit_api_test").submit(title, url=url)
+            reddit.subreddit("reddit_api_test").submit(title, selftext=selftext)
         except Exception as e:
             print(
                 "got an error making a new submission. [{}]".format(e.args[0]),
