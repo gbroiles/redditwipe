@@ -1,11 +1,9 @@
 #! /usr/bin/env python3
 # pylint: disable=missing-module-docstring,missing-function-docstring,invalid-name,no-member,unused-argument,unused-variable,missing-class-docstring,line-too-long
-import datetime
 import os
 import random
 import sys
 import praw
-import pprint
 
 
 def main():
