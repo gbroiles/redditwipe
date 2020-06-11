@@ -1,2 +1,2 @@
-praw>=6.5.1
-
+wxPython
+praw
