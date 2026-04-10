@@ -1,9 +1,10 @@
 #! /usr/bin/env python3
 # pylint: disable=missing-module-docstring,missing-function-docstring,invalid-name,no-member,unused-argument,unused-variable,missing-class-docstring,line-too-long
+import concurrent.futures
 import datetime
 import os
 import random
-import sys
+import threading
 import wx
 import praw
 
@@ -17,7 +18,8 @@ class mainWindow(wx.Frame):
         self.InitUI()
 
     def InitUI(self):
-        self.CreateStatusBar()
+        self.sb = self.CreateStatusBar()
+        self._count_lock = threading.Lock()
 
         panel = wx.Panel(self)
         sizer = wx.GridBagSizer(5, 5)
@@ -31,8 +33,7 @@ class mainWindow(wx.Frame):
         )
 
         self.uname = wx.TextCtrl(panel)
-        username = os.environ["REDDIT_USERNAME"]
-        self.uname.SetValue(username)
+        self.uname.SetValue(os.environ.get("REDDIT_USERNAME", ""))
         sizer.Add(self.uname, pos=(0, 1), flag=wx.ALL | wx.ALIGN_LEFT, border=5)
 
         st2 = wx.StaticText(panel, label="Password:")
@@ -43,9 +44,8 @@ class mainWindow(wx.Frame):
             border=5,
         )
 
-        self.pword = wx.TextCtrl(panel)
-        password = os.environ["REDDIT_PASSWORD"]
-        self.pword.SetValue(password)
+        self.pword = wx.TextCtrl(panel, style=wx.TE_PASSWORD)
+        self.pword.SetValue(os.environ.get("REDDIT_PASSWORD", ""))
         sizer.Add(self.pword, pos=(0, 3), flag=wx.ALL | wx.ALIGN_LEFT, border=5)
 
         btn1 = wx.Button(panel, label="Update")
@@ -70,8 +70,9 @@ class mainWindow(wx.Frame):
             self.verbose, pos=(1, 3), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5
         )
 
-        btn2 = wx.Button(panel, label="Wipe")
-        sizer.Add(btn2, pos=(2, 4), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.wipe_btn = wx.Button(panel, label="Wipe")
+        self.wipe_btn.Disable()  # enabled after successful login
+        sizer.Add(self.wipe_btn, pos=(2, 4), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5)
 
         self.rbox = wx.RadioBox(
             panel,
@@ -91,10 +92,8 @@ class mainWindow(wx.Frame):
         )
         sizer.Add(self.age, pos=(2, 3), flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL)
 
-        legendtext = "".join(
-            "1 day = {:,} minutes, 1 month = {:,} minutes, 1 year = {:,} minutes".format(
-                60 * 24, 60 * 24 * 30, 60 * 24 * 365
-            )
+        legendtext = "1 day = {:,} minutes, 1 month = {:,} minutes, 1 year = {:,} minutes".format(
+            60 * 24, 60 * 24 * 30, 60 * 24 * 365
         )
         legend = wx.StaticText(panel, label=legendtext)
         sizer.Add(
@@ -124,13 +123,11 @@ class mainWindow(wx.Frame):
         )
 
         sizer.AddGrowableRow(5)
-
         panel.SetSizer(sizer)
 
         self.Bind(wx.EVT_BUTTON, self.Login, id=btn1.GetId())
-        self.Bind(wx.EVT_BUTTON, self.Process, id=btn2.GetId())
+        self.Bind(wx.EVT_BUTTON, self.Process, id=self.wipe_btn.GetId())
         self.Bind(wx.EVT_SPINCTRL, self.UpdateAge)
-        self.loggedin = False
 
     def UpdateAge(self, e):
         if self.age.GetValue() > 0:
@@ -138,194 +135,208 @@ class mainWindow(wx.Frame):
         else:
             self.rbox.SetSelection(0)
 
-    def OnQuit(self, e):
-        self.Close()
+    def _age_filter(self):
+        """Returns the minimum age in seconds, or 0 for any age. Call from main thread only."""
+        if self.rbox.GetSelection() == 1:
+            return self.age.GetValue() * 60
+        return 0
 
     def Process(self, e):
-        sb = self.GetStatusBar()
-        if self.submissions.GetValue:
-            sb.SetStatusText("Wiping submissions ...")
-            self.start_delete_submissions(self)
-        if self.comments.GetValue:
-            sb.SetStatusText("Wiping comments ...")
-            self.start_delete_comments(self)
-        self.Update_counts()
+        # Capture all UI state on the main thread before handing off to the worker.
+        do_submissions = self.submissions.GetValue()
+        do_comments = self.comments.GetValue()
+        expire_seconds = self._age_filter()
+        verbose = self.verbose.GetValue()
+        username = self.uname.GetValue()
 
-    def get_comment_total(self, e):
-        if self.rbox.GetSelection() == 1:
-            age = self.age.GetValue()
-        else:
-            age = 0
-        comment_count = 0
-        textbox = self.tc2
-        now = datetime.datetime.now().timestamp()
-        expire_seconds = age * 60
-        if self.verbose.GetValue():
-            if age > 0:
-                textbox.AppendText(
-                    "Looking for comments older than {:0,} minutes from {}\n".format(
-                        age, self.uname.GetValue()
-                    )
-                )
-            else:
-                textbox.AppendText(
-                    "Looking for all comments from {}\n".format(self.uname.GetValue())
-                )
-        for reply in self.reddit.redditor(self.uname.GetValue()).comments.new(
-            limit=self.limitation
-        ):
-            comment_age = now - reply.created_utc
-            if self.verbose.GetValue():
-                subreddit = reply.subreddit
-                textbox.AppendText(
-                    "Found {} in /r/{} it is {:,} minutes old.\n".format(
-                        reply.id, subreddit, int(comment_age / 60)
-                    )
-                )
-            if age == 0 or comment_age > expire_seconds:
-                comment_count += 1
-        return comment_count
+        what = []
+        if do_submissions:
+            what.append("submissions")
+        if do_comments:
+            what.append("comments")
+        if not what:
+            return
 
-    def get_submission_total(self, e):
-        age = self.age.GetValue()
-        submission_count = 0
-        textbox = self.tc2
-        now = datetime.datetime.now().timestamp()
-        expire_seconds = age * 60
-        if self.verbose.GetValue():
-            if age > 0:
-                textbox.AppendText(
-                    "Looking for submissions older than {:0,} minutes from {}\n".format(
-                        age, self.uname.GetValue()
-                    )
-                )
-            else:
-                textbox.AppendText(
-                    "Looking for all submissions from {}\n".format(
-                        self.uname.GetValue()
-                    )
-                )
-        for submission in self.reddit.redditor(self.uname.GetValue()).submissions.new(
-            limit=self.limitation
-        ):
-            submission_age = now - submission.created_utc
-            if self.verbose.GetValue():
-                subreddit = submission.subreddit
-                textbox.AppendText(
-                    "Found {} in /r/{} it is {:,} minutes old.\n".format(
-                        submission.id, subreddit, int(submission_age / 60)
-                    )
-                )
-            if age == 0 or submission_age > expire_seconds:
-                submission_count += 1
-        return submission_count
+        age_desc = ""
+        if expire_seconds > 0:
+            age_desc = " older than {:,} minutes".format(expire_seconds // 60)
+        msg = "Delete all {}{} for {}?\n\nThis cannot be undone.".format(
+            " and ".join(what), age_desc, username
+        )
+        dlg = wx.MessageDialog(
+            self, msg, "Confirm Wipe", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING
+        )
+        confirmed = dlg.ShowModal() == wx.ID_YES
+        dlg.Destroy()
+        if not confirmed:
+            return
 
-    def start_delete_comments(self, e):
-        age = self.age.GetValue()
-        now = datetime.datetime.now().timestamp()
-        expire_seconds = age * 60
-        comment_count = self.get_comment_total(self)
-        textbox = self.tc2
-        while comment_count > 0:
-            for comment in self.reddit.redditor(self.uname.GetValue()).comments.new(
-                limit=self.limitation
-            ):
-                comment_to_delete = self.reddit.comment(comment)
-                comment_age = now - comment_to_delete.created_utc
-                if age == 0 or comment_age > expire_seconds:
-                    if self.verbose.GetValue():
-                        textbox.AppendText(
-                            "Working on comment {}: {}\n".format(
-                                comment_to_delete.id, comment_to_delete.body[0:15]
-                            )
+        self.wipe_btn.Disable()
+        threading.Thread(
+            target=self._wipe_worker,
+            args=(do_submissions, do_comments, expire_seconds, verbose, username),
+            daemon=True,
+        ).start()
+
+    def _wipe_worker(self, do_submissions, do_comments, expire_seconds, verbose, username):
+        try:
+            if do_submissions:
+                wx.CallAfter(self.sb.SetStatusText, "Wiping submissions ...")
+                self.start_delete_submissions(expire_seconds, verbose, username)
+            if do_comments:
+                wx.CallAfter(self.sb.SetStatusText, "Wiping comments ...")
+                self.start_delete_comments(expire_seconds, verbose, username)
+            self._fetch_and_show_counts(expire_seconds, username)
+        except Exception as exc:
+            wx.CallAfter(self.tc2.AppendText, "Wipe error: {}\n".format(exc))
+            wx.CallAfter(self.sb.SetStatusText, "Wipe failed: {}".format(exc))
+        finally:
+            wx.CallAfter(self.wipe_btn.Enable)
+
+    def _get_comment_total(self, expire_seconds, username):
+        count = 0
+        for reply in self.reddit.redditor(username).comments.new(limit=None):
+            comment_age = datetime.datetime.now().timestamp() - reply.created_utc
+            if expire_seconds == 0 or comment_age > expire_seconds:
+                count += 1
+        return count
+
+    def _get_submission_total(self, expire_seconds, username):
+        count = 0
+        for submission in self.reddit.redditor(username).submissions.new(limit=None):
+            submission_age = datetime.datetime.now().timestamp() - submission.created_utc
+            if expire_seconds == 0 or submission_age > expire_seconds:
+                count += 1
+        return count
+
+    def start_delete_comments(self, expire_seconds, verbose, username):
+        for comment in self.reddit.redditor(username).comments.new(limit=None):
+            comment_age = datetime.datetime.now().timestamp() - comment.created_utc
+            if expire_seconds == 0 or comment_age > expire_seconds:
+                try:
+                    if verbose:
+                        wx.CallAfter(
+                            self.tc2.AppendText,
+                            "Working on comment {}: {}\n".format(comment.id, comment.body[:15]),
                         )
-                        for i in range(2):
-                            comment_to_delete.edit(self.Random_words())
-                            if self.verbose.GetValue():
-                                textbox.AppendText(
-                                    "Working on comment {}: Changed text to {}\n".format(
-                                        comment_to_delete.id, comment_to_delete.body
-                                    )
+                    for _ in range(2):
+                        comment.edit(Random_words())
+                        if verbose:
+                            wx.CallAfter(
+                                self.tc2.AppendText,
+                                "Working on comment {}: Changed text to {}\n".format(
+                                    comment.id, comment.body
+                                ),
+                            )
+                    comment.delete()
+                    wx.CallAfter(
+                        self.tc2.AppendText,
+                        "Deleted comment {}\n".format(comment.id),
+                    )
+                except Exception as exc:
+                    wx.CallAfter(
+                        self.tc2.AppendText,
+                        "Error on comment {}: {}\n".format(comment.id, exc),
+                    )
+
+    def start_delete_submissions(self, expire_seconds, verbose, username):
+        for submission in self.reddit.redditor(username).submissions.new(limit=None):
+            submission_age = datetime.datetime.now().timestamp() - submission.created_utc
+            if expire_seconds == 0 or submission_age > expire_seconds:
+                try:
+                    if verbose:
+                        kind = "text post" if submission.is_self else "link post, cannot overwrite"
+                        wx.CallAfter(
+                            self.tc2.AppendText,
+                            "Working on submission {}: {} [{}]\n".format(
+                                submission.id, submission.title, kind
+                            ),
+                        )
+                    if submission.is_self:
+                        for _ in range(2):
+                            submission.edit(Random_words())
+                            if verbose:
+                                wx.CallAfter(
+                                    self.tc2.AppendText,
+                                    "Working on submission {}: Changed text to {}\n".format(
+                                        submission.id, submission.selftext
+                                    ),
                                 )
-                    textbox.AppendText(
-                        "Deleted comment {}\n".format(comment_to_delete.id)
+                    submission.delete()
+                    wx.CallAfter(
+                        self.tc2.AppendText,
+                        "Deleted submission {}\n".format(submission.id),
                     )
-                    comment_to_delete.delete()
-                comment_count -= 1
-
-    def start_delete_submissions(self, e):
-        age = self.age.GetValue()
-        now = datetime.datetime.now().timestamp()
-        expire_seconds = age * 60
-        submission_count = self.get_submission_total(self)
-        textbox = self.tc2
-        while submission_count > 0:
-            for submission in self.reddit.redditor(
-                self.uname.GetValue()
-            ).submissions.new(limit=self.limitation):
-                submission_to_delete = self.reddit.submission(submission)
-                submission_age = now - submission_to_delete.created_utc
-                if age == 0 or submission_age > expire_seconds:
-                    if self.verbose.GetValue():
-                        textbox.AppendText(
-                            "Working on submission {}: {}".format(
-                                submission_to_delete.id, submission_to_delete.title
-                            )
-                        )
-                        if submission_to_delete.post_hint == "self":
-                            textbox.AppendText(" text post\n")
-                            for i in range(2):
-                                submission_to_delete.edit(self.Random_words())
-                                if self.verbose.GetValue():
-                                    textbox.AppendText(
-                                        "Working on submission {}: Changed text to {}\n".format(
-                                            submission_to_delete.id,
-                                            submission_to_delete.selftext,
-                                        )
-                                    )
-                        else:
-                            textbox.AppendText(" link post, cannot overwrite\n")
-                    textbox.AppendText(
-                        "Deleted submission {}\n".format(submission_to_delete.id)
+                except Exception as exc:
+                    wx.CallAfter(
+                        self.tc2.AppendText,
+                        "Error on submission {}: {}\n".format(submission.id, exc),
                     )
-                    submission_to_delete.delete()
-                submission_count -= 1
 
-    def Update_counts(self):
-        sb = self.GetStatusBar()
-        sb.SetStatusText("Getting submission/comment count ...")
-        comments = self.get_comment_total(self.reddit)
-        submissions = self.get_submission_total(self.reddit)
-        result = "Found {} submissions, {} comments".format(submissions, comments)
-        self.found.SetValue(result)
-        sb.SetStatusText(result)
+    def UpdateCounts(self):
+        # Capture UI state on the main thread before starting the background fetch.
+        expire_seconds = self._age_filter()
+        username = self.uname.GetValue()
+        threading.Thread(
+            target=self._fetch_and_show_counts,
+            args=(expire_seconds, username),
+            daemon=True,
+        ).start()
+
+    def _fetch_and_show_counts(self, expire_seconds, username):
+        if not self._count_lock.acquire(blocking=False):
+            return  # a count is already in progress; skip this one
+        try:
+            wx.CallAfter(self.sb.SetStatusText, "Getting submission/comment count ...")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                f_comments = executor.submit(self._get_comment_total, expire_seconds, username)
+                f_submissions = executor.submit(self._get_submission_total, expire_seconds, username)
+                comments = f_comments.result()
+                submissions = f_submissions.result()
+            result = "Found {} submissions, {} comments".format(submissions, comments)
+            wx.CallAfter(self.found.SetValue, result)
+            wx.CallAfter(self.sb.SetStatusText, result)
+        except Exception as exc:
+            wx.CallAfter(self.sb.SetStatusText, "Error getting counts: {}".format(exc))
+        finally:
+            self._count_lock.release()
 
     def Login(self, e):
-        sb = self.GetStatusBar()
-        sb.SetStatusText("Logging in...")
-        try:
-            clientid = os.environ["REDDIT_CLIENT_ID"]
-            clientsecret = os.environ["REDDIT_CLIENT_SECRET"]
-        except KeyError:
-            print(
-                "Environment variables REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set."
+        self.sb.SetStatusText("Logging in...")
+        clientid = os.environ.get("REDDIT_CLIENT_ID")
+        clientsecret = os.environ.get("REDDIT_CLIENT_SECRET")
+        if not clientid or not clientsecret:
+            dlg = wx.MessageDialog(
+                self,
+                "Environment variables REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set.",
+                "Login Error",
+                wx.OK | wx.ICON_ERROR,
             )
-            sys.exit(1)
-        try:
-            user_agent = os.environ["REDDIT_USER_AGENT"]
-        except KeyError:
-            user_agent = "redditwipe"
-        self.limitation = None
+            dlg.ShowModal()
+            dlg.Destroy()
+            self.sb.SetStatusText("Login failed.")
+            return
+        if not self.uname.GetValue().strip() or not self.pword.GetValue().strip():
+            dlg = wx.MessageDialog(
+                self,
+                "Username and password are required.",
+                "Login Error",
+                wx.OK | wx.ICON_ERROR,
+            )
+            dlg.ShowModal()
+            dlg.Destroy()
+            self.sb.SetStatusText("Login failed.")
+            return
         self.reddit = praw.Reddit(
             client_id=clientid,
             client_secret=clientsecret,
-            user_agent=user_agent,
+            user_agent=os.environ.get("REDDIT_USER_AGENT", "redditwipe"),
             username=self.uname.GetValue(),
             password=self.pword.GetValue(),
         )
-        sb.SetStatusText("Logged in.")
-        self.Update_counts()
-        self.loggedin = True
+        self.sb.SetStatusText("Logged in.")
+        self.wipe_btn.Enable()
+        self.UpdateCounts()
 
 
 phonetic = [

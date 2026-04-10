@@ -13,17 +13,11 @@ def main():
         username = os.environ["REDDIT_USERNAME"]
         password = os.environ["REDDIT_PASSWORD"]
     except KeyError:
-        #        print('Environment variables REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set.')
         sys.exit(1)
-    try:
-        user_agent = os.environ["REDDIT_USER_AGENT"]
-    except KeyError:
-        user_agent = "redditwipe"
-    limitation = None
     reddit = praw.Reddit(
         client_id=clientid,
         client_secret=clientsecret,
-        user_agent=user_agent,
+        user_agent=os.environ.get("REDDIT_USER_AGENT", "redditwipe"),
         username=username,
         password=password,
     )
@@ -31,41 +25,37 @@ def main():
     x = random.randint(1, 4)
 
     if x == 1:
-        submissions = []
-        for submission in reddit.redditor(username).submissions.new(limit=limitation):
-            submissions.append(submission)
-        choice = random.randint(0, len(submissions) - 1)
+        submissions = list(reddit.redditor(username).submissions.new(limit=None))
+        if not submissions:
+            print("No submissions found, skipping reply.", file=sys.stderr)
+            return
         try:
-            submissions[choice].reply(Random_words())
+            random.choice(submissions).reply(Random_words())
         except Exception as e:
             print(
-                "got an error replying to an existing submission. [{}]".format(
-                    e.args[0]
-                ),
+                "got an error replying to an existing submission. [{}]".format(str(e)),
                 file=sys.stderr,
             )
 
     elif x == 2:
-        comments = []
-        for comment in reddit.redditor(username).comments.new(limit=limitation):
-            comments.append(comment)
-        choice = random.randint(0, len(comments) - 1)
+        comments = list(reddit.redditor(username).comments.new(limit=None))
+        if not comments:
+            print("No comments found, skipping reply.", file=sys.stderr)
+            return
         try:
-            comments[choice].reply(Random_words())
+            random.choice(comments).reply(Random_words())
         except Exception as e:
             print(
-                "got an error replying to an existing comment. [{}]".format(e.args[0]),
+                "got an error replying to an existing comment. [{}]".format(str(e)),
                 file=sys.stderr,
             )
 
     else:
-        title = Random_words()
-        selftext = Random_words()
         try:
-            reddit.subreddit("reddit_api_test").submit(title, selftext=selftext)
+            reddit.subreddit("reddit_api_test").submit(Random_words(), selftext=Random_words())
         except Exception as e:
             print(
-                "got an error making a new submission. [{}]".format(e.args[0]),
+                "got an error making a new submission. [{}]".format(str(e)),
                 file=sys.stderr,
             )
 

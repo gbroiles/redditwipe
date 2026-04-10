@@ -30,7 +30,7 @@ in your .bashrc folder in your home directory. Or, add them as system environmen
 
 If you're only going to use one username/password set, you can also set two more environment variables:
 
-    export REDDIT_USER='username'
+    export REDDIT_USERNAME='username'
     export REDDIT_PASSWORD='password'
 
 and they'll be available to the program. If you want to use the program with several usernames (** they must all be added as developers in the App section on Reddit **) you can leave those variables blank and enter the username/pw pairs when you run the program. 
